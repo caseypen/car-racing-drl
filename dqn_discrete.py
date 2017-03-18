@@ -14,7 +14,7 @@ from skimage.color import rgb2grey
 # ==========================
 
 # Max episode length    
-MAX_EP_STEPS = 400
+# MAX_EP_STEPS = 400
 
 # Base learning rate for the Qnet Network
 Q_LEARNING_RATE = 1e-5
@@ -33,7 +33,7 @@ EPS_UPDATE = 20
 #   Utility Parameters
 # ===========================
 # Directory for storing tensorboard summary results
-SUMMARY_DIR = './results_dqn/dqn_308'
+SUMMARY_DIR = './results_dqn/plain_dqn'
 RANDOM_SEED = 1234
 # Size of replay buffer
 BUFFER_SIZE = 100000
@@ -43,10 +43,10 @@ RENDER = True
 # Game Config #
 ###############
 GAME            =  'CarRacing-v0'
-ACTION_ACCEL    =  [0, 1, 0]
-ACTION_BRAKE    =  [0, 0, 0.0]
-ACTION_LEFT     =  [-1, 0, 0]
-ACTION_RIGHT    =  [ 1, 0, 0]
+ACTION_ACCEL    =  [0, 0.8, 0]
+ACTION_BRAKE    =  [0, 0, 0.1]
+ACTION_LEFT     =  [-1, 0, 0.05]
+ACTION_RIGHT    =  [ 1, 0, 0.05]
 ACTIONS         =  [ACTION_ACCEL, ACTION_LEFT, ACTION_RIGHT, ACTION_BRAKE]
 # ACTIONS         =  [ACTION_ACCEL, ACTION_LEFT, ACTION_RIGHT]
 ACTION_SIZE     =  len(ACTIONS)
@@ -103,7 +103,7 @@ class QNetwork(object):
         net = tflearn.conv_2d(inputs, 16, 8, activation='relu', name='conv2')
         # net = tflearn.layers.conv.max_pool_2d (net, 2, strides=None, padding='same', name='MaxPool2D1')
         net = tflearn.conv_2d(inputs, 16, 8, activation='relu', name='conv3')
-        net = tflearn.fully_connected(net, 128, activation='relu')
+        net = tflearn.fully_connected(net, 256, activation='relu')
         net = tflearn.layers.normalization.batch_normalization (net, name='BatchNormalization1')
         out = tflearn.fully_connected(net, self.a_dim)
         return inputs, out
@@ -175,10 +175,14 @@ def train(sess, env, Qnet, global_step):
 
     i = global_step.eval()
 
+        # Max episode length    
+    EP_STEPS = 300
+    MAX_EP_STEPS = 500
+    EP_DELTA = 10
 
     # eval_acc_reward = 0
     tic = time.time()
-    eps = 0.05
+    eps = 0.1
     while True:
         i += 1
         
@@ -190,13 +194,17 @@ def train(sess, env, Qnet, global_step):
 
         if i % SAVE_STEP == 0 : # save check point every 1000 episode
             sess.run(global_step.assign(i))
-            save_path = saver.save(sess, "./results_dqn/model.ckpt" , global_step = global_step)
+            save_path = saver.save(sess, "./results_dqn/plain_dqn/model.ckpt" , global_step = global_step)
             print("Model saved in file: %s" % save_path)
             print("Successfully saved global step: ", global_step.eval())
 
         eval_acc_reward = 0
 
-        for j in xrange(MAX_EP_STEPS):
+        if i % 10 == 0:
+            EP_STEPS += EP_DELTA
+            EP_STEPS = min(EP_STEPS, MAX_EP_STEPS)
+
+        for j in xrange(EP_STEPS):
             predicted_q_value = Qnet.predict(np.reshape(s, np.hstack((1, Qnet.s_dim))))
             predicted_q_value = predicted_q_value[0]
 
@@ -269,9 +277,10 @@ def train(sess, env, Qnet, global_step):
                 #     })
                 #     writer.add_summary(summary_str, i)
                 #     writer.flush()
-
                     print ('| Episode Reward: %f ' % (eval_acc_reward), "| Episode", i, \
-                        '| Qmax: %.4f' % (ep_ave_max_q / float(j+1)), ' | Time: %.2f' %(time_gap), ' | Eps: %f' %(eps))
+                        '| Qmax: %.4f' % (ep_ave_max_q / float(j+1)), ' | Time: %.2f' %(time_gap), ' | Eps: %f' %(eps)), \
+                        '| STEPS: %d' %j, '| EP_MAX_STEPS: %d' %EP_STEPS
+    
                 #     tic = time.time()
 
                     # print(' 100 round reward: ', eval_acc_reward)
@@ -317,6 +326,8 @@ def main(_):
         env = gym.make(GAME)
         # np.random.seed(RANDOM_SEED)
         # tf.set_random_seed(RANDOM_SEED)
+        if not RENDER:
+            env
 
         # state_dim = np.prod(env.observation_space.shape)
         state_dim = np.shape(env.reset())

@@ -37,24 +37,24 @@ EPS_UPDATE = 20
 MAP_SIZE  = 8
 PROBABILITY = 0.1
 # Directory for storing tensorboard summary results
-SUMMARY_DIR = './results_dqn/dqn_308'
+SUMMARY_DIR = './results_dqn/dqn_306'
 RANDOM_SEED = 1234
 # Size of replay buffer
-BUFFER_SIZE = 1000000
+BUFFER_SIZE = 10000
 EVAL_EPISODES = 1000
 RENDER = True
-TEST_STEP = 1000000
+TEST_STEP = 100000000
 TEST_TIMES = 1
 ###############
 # Game Config #
 ###############
 GAME            =  'CarRacing-v0'
-ACTION_ACCEL    =  [0, 0.2, 0]
-ACTION_BRAKE    =  [0, 0, 0.05]
+ACTION_ACCEL    =  [0, 0.5, 0]
+# ACTION_BRAKE    =  [0, 0, 0.05]
 ACTION_LEFT     =  [-1, 0, 0.02]
 ACTION_RIGHT    =  [ 1, 0, 0.02]
-ACTIONS         =  [ACTION_ACCEL, ACTION_LEFT, ACTION_RIGHT, ACTION_BRAKE]
-# ACTIONS         =  [ACTION_ACCEL, ACTION_LEFT, ACTION_RIGHT]
+# ACTIONS         =  [ACTION_ACCEL, ACTION_LEFT, ACTION_RIGHT, ACTION_BRAKE]
+ACTIONS         =  [ACTION_ACCEL, ACTION_LEFT, ACTION_RIGHT]
 ACTION_SIZE     =  len(ACTIONS)
 
 
@@ -159,7 +159,7 @@ def main(_):
         global_step = tf.Variable(0, name='global_step', trainable=False)
 
         env = gym.make(GAME)
-        env = wrappers.Monitor(env, '/tmp/CarRacing_4_discrete4', force=True)
+        env = wrappers.Monitor(env, '/tmp/CarRacing_plain_discrete1', force=True)
         state = env.reset()
 
         state_dim = (state.shape[0], state.shape[1], 1)
